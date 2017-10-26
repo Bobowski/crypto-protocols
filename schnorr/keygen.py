@@ -1,4 +1,4 @@
-#!/usr/local/bin/python3
+#!/usr/bin/env python3
 
 from charm.toolbox.pairinggroup import PairingGroup, ZR, G1, G2, GT, pair
 
