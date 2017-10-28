@@ -66,7 +66,7 @@ def step_7(v):
         raise ValuseError("Pairing LHS != RHS")
 
     v['c'], v['ω'] = G.random(ZR, 2)
-    v['Xd'] = v['g'] ** v['ω']
+    v['Xd'] = v['X'] ** v['ω']
     return {'c': v['c'], 'Xd': v['Xd']}
 
 def step_8(u):
