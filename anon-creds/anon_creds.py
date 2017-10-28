@@ -9,21 +9,25 @@ def exp_prod(gs, ns):
 
 # Issuing credentials
 def step_0(u):
+    """ User - Commit """
     u['M'] = u['g'] ** u['m'][0] * exp_prod(u['Z'], u['m'][1:])
     u['r'] = G.random(ZR, len(u['m']))
     u['T'] = u['g'] ** u['r'][0] * exp_prod(u['Z'], u['r'][1:])
     return {'M': u['M'], 'T': u['T']}
 
 def step_1(i):
+    """ Issuer - Challange """
     i['c'], i['ω'] = G.random(ZR, 2)
     i['g̃'] = i['g'] ** i['ω']
     return {'c': i['c'], 'g̃': i['g̃']}
 
 def step_2(u):
+    """ User - Answer challange """
     u['S'] = [u['g̃'] ** (r - u['c'] * m) for r, m in zip(u['r'], u['m'])]
     return {'S': u['S']}
 
 def step_3(i):
+    """ Issuer - Issue credentials """
     lhs = pair(i['g̃'], i['T'] / (i['M'] ** i['c']))
     rhs = pair(i['S'][0], i['g']) * G.pair_prod(i['S'][1:], i['Z'])
     if lhs != rhs:
@@ -36,17 +40,19 @@ def step_3(i):
     # B
     i['B'] = [A ** i['y'] for A in i['A']]
     # C
-    i['C'] = (i['A'][0] ** x) * (i['M'] ** (a0 * x * y))
+    i['C'] = (i['A'][0] ** i['x']) * (i['M'] ** (a0 * i['x'] * i['y']))
 
     return {'A': i['A'], 'B': i['B'], 'C': i['C']}
 
 def step_4(u):
+    """ User - Store credentials """
     return {'m': u['m'], 'A': u['A'], 'B': u['B'], 'C': u['C']}
 
 
 # Verifying credentials
 
 def step_6(u):
+    """ User - Commit """
     u["r'"], u["r''"], u['ra'], *u['r'] = G.random(ZR, len(u['m']) + 3)
     u['At'] = [A ** u["r'"] for A in u['A']]
     u['Bt'] = [B ** u["r'"] for B in u['B']]
@@ -59,10 +65,11 @@ def step_6(u):
     return {'At': u['At'], 'Bt': u['Bt'], 'Ct': u['Ct'], 'td': u['td']}
 
 def step_7(v):
-    if not all([pair(v['At'][0], Z) == pair(v['g'], At) for Z, At in zip(u['Z'], u['At'][1:])]):
+    """ Verifier - Challange """
+    if not all([pair(v['At'][0], Z) == pair(v['g'], At) for Z, At in zip(v['Z'], v['At'][1:])]):
         raise ValueError("Paring LHS != RHS")
 
-    if not all([pair(At, u['Y']) == pair(u['g'], Bt)] for At, Bt in zip(u['At'], u['Bt'])):
+    if not all([pair(At, v['Y']) == pair(v['g'], Bt)] for At, Bt in zip(v['At'], v['Bt'])):
         raise ValuseError("Pairing LHS != RHS")
 
     v['c'], v['ω'] = G.random(ZR, 2)
@@ -70,13 +77,15 @@ def step_7(v):
     return {'c': v['c'], 'Xd': v['Xd']}
 
 def step_8(u):
+    """ User - Answer challange """
     u['sa'] = u['ra'] - u['c'] * u["r''"]
     u['S'] = [u['Xd'] ** (r - u['c'] * m * u["r''"]) for r, m in zip(u['r'], u['m'])]
     return {'sa': u['sa'], 'S': u['S']}
 
 def step_9(v):
+    """ Verifier - Verify """
     lhs = v['td'] ** v['ω']
-    rhs = pair(v['g'] ** (v['ω'] * v['c']), v['Ct']) * pair(v['Xd'], v['At'][0]) ** v['sa'] * G.pair_prod(u['S'], u['Bt'])
+    rhs = pair(v['g'] ** (v['ω'] * v['c']), v['Ct']) * pair(v['Xd'], v['At'][0]) ** v['sa'] * G.pair_prod(v['S'], v['Bt'])
 
     accept = lhs == rhs
     return {"Accept": accept}
@@ -84,7 +93,7 @@ def step_9(v):
 
 if __name__ == "__main__":
     # Just testing
-    l = 5
+    l = 3
 
     g = G.random(G1)
     x, y = G.random(ZR), G.random(ZR)
@@ -103,7 +112,7 @@ if __name__ == "__main__":
     u.update(step_1(i))
     i.update(step_2(u))
     u.update(step_3(i))
-    print(step_4(u))
+    #print(step_4(u))
 
     v.update(step_6(u))
     u.update(step_7(v))
