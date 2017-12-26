@@ -4,6 +4,7 @@ from utils import ID, Poly, product, LIexp
 
 import random
 
+import time
 
 # Setup
 G = IntegerGroupQ()
@@ -14,9 +15,12 @@ z = 16
 n = 256
 NUM_BLOCKS = 1
 
+print("Params")
+
 # Client message
 M = [[integer(random.randrange(2 ** n), G.q) for _ in range(z)] for _ in range(NUM_BLOCKS)]
 
+print("File")
 
 def poly(sk, fid):
     """ Generate random polynomial from seed := sk + id_f """
@@ -81,15 +85,20 @@ def agg_gen_proof(Tfs, H):
         for Tf in Tfs
     )
 
+a = time.time()
 
 t = tag_block(sk, M[0])
 Kf, H = gen_challange(sk, ID(M[0]))
 Pf = gen_proof(t, H)
 
+print(time.time() - a)
 print(Pf == Kf)
+
+a = time.time()
 
 Tfs = [agg_tag_block(sk, f, ID(M)) for f in M]
 Kf, H = agg_gen_challange(sk, [ID(f) for f in M], ID(M))
 Pf = agg_gen_proof(Tfs, H)
 
+print(time.time() - a)
 print(Pf == Kf)
