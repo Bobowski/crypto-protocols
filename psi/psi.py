@@ -7,11 +7,6 @@ from utils import product
 G = PairingGroup('SS512')
 
 
-AnB = G.random(ZR, 4)
-A = G.random(ZR, 4) + AnB
-B = G.random(ZR, 4) + AnB
-
-print("done")
 
 def step_0(a):
     a['e'] = G.random(ZR)
@@ -33,6 +28,10 @@ def step_2(a):
     print(len(common))
 
 if __name__ == '__main__':
+    AnB = G.random(ZR, 4)
+    A = G.random(ZR, 10) + AnB
+    B = G.random(ZR, 10) + AnB
+
     a = {"m": A}
     b = {"m": B}
 
