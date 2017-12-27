@@ -1,48 +1,54 @@
 from charm.toolbox.pairinggroup import PairingGroup, ZR, G1, G2, GT, pair
 
-from utils import product
 
-G = PairingGroup('SS512')
+class OkamotoRom:
+    def __init__(self, group_obj):
+        global group
+        group = group_obj
 
+    def commit(self, p):
+        """ Prover -- Commit """
+        p['r'] = [group.random(ZR) for _ in range(2)]
+        p['X'] = p['g'][0] ** p['r'][0] * p['g'][1] ** p['r'][1]
+        return {'X': p['X']}
 
-def step_0(p):
-    """ Prover -- Commit """
-    p['r'] = G.random(ZR, 2)
-    p['X'] = product(g **  r for g, r in zip(p['g'], p['r']))
-    return {'X': p['X']}
+    def challenge(self, v):
+        """ Verifier -- Challenge """
+        v['c'] = group.random(ZR)
+        return {'c': v['c']}
 
-def step_1(v):
-    """ Verifier -- Challange """
-    v['c'] = G.random(ZR)
-    return {'c': v['c']}
+    def answer(self, p):
+        """ Prover -- Answer Challange """
+        p['gd'] = group.hash(group.serialize(p['X']) + group.serialize(p['c']), G1)
+        p['s'] = [p['gd'] ** (r + sk * p['c']) for r, sk in zip(p['r'], p['sk'])]
+        return {'s': p['s']}
 
-def step_2(p):
-    """ Prover -- Answer Challange """
-    p['gd'] = G.hash(G.serialize(p['X']) + G.serialize(p['c']), G1)
-    p['s'] = [p['gd'] * (r + sk * p['c']) for r, sk in zip(p['r'], p['sk'])]
-    return {'s': p['s']}
+    def verify(self, v):
+        """ Verifier --  Verify """
+        v['gd'] = group.hash(group.serialize(v['X']) + group.serialize(v['c']), G1)
 
-def step_3(v):
-    """ Verifier --  Verify """
-    v['gd'] = G.hash(G.serialize(v['X']) + G.serialize(v['c']), G1)
+        lhs = pair(v['s'][0], v['g'][0]) * pair(v['s'][1], v['g'][1])
+        rhs = pair(v['gd'], v['pk'] ** v['c'] * v['X'])
 
-    lhs = product(pair(S, g) for S, g in zip(v['s'], v['g']))
-    rhs = pair(v['gd'], v['pk'] ** v['c'] * v['X'])
+        return lhs == rhs
 
-    accept = lhs == rhs
-    return {"Accept": accept}
-
-
-if __name__ == "__main__":
+def test():
     # Just testing
-    g = G.random(G1, 2)
+
+    G = PairingGroup('MNT224')
+    IDS = OkamotoRom(G)
+
+    g = [G.random(G2), G.random(G2)]
     sk = G.random(ZR, 2)
-    pk = product(g_ ** sk for g_, sk in zip(g, sk))
+    pk = g[0] ** sk[0] * g[1] ** sk[1]
 
     p = {'sk': sk, 'g': g}
     v = {'pk': pk, 'g': g}
 
-    v.update(step_0(p))
-    p.update(step_1(v))
-    v.update(step_2(p))
-    print(step_3(v))
+    v.update(IDS.commit(p))
+    p.update(IDS.challenge(v))
+    v.update(IDS.answer(p))
+    print(IDS.verify(v))
+
+if __name__ == "__main__":
+    test()
