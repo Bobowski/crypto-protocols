@@ -2,7 +2,7 @@ import time
 
 from charm.toolbox.pairinggroup import PairingGroup, ZR, G1, G2, GT, pair
 
-G = PairingGroup('SS512')
+G = PairingGroup('MNT159')
 
 
 def step_0(p):
@@ -39,9 +39,10 @@ if __name__ == "__main__":
     v = {'pk': pk, 'g': g}
 
     t = time.time()
-    v.update(step_0(p))
-    p.update(step_1(v))
-    v.update(step_2(p))
-    val = step_3(v)
+    for i in range(2500):
+        v.update(step_0(p))
+        p.update(step_1(v))
+        v.update(step_2(p))
+        val = step_3(v)
     t = time.time() - t
-    print(val, t)
+    print(val, t, t / 2500)
