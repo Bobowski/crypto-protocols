@@ -1,8 +1,11 @@
+import asyncio
 import random as rnd
 import hashlib
 
+import websockets
 from charm.core.math.integer import integer,isPrime,gcd,random,randomPrime,toInt, serialize, deserialize
 
+from utils import jencode, jdecode
 
 k = 160
 l_p = 256
@@ -104,7 +107,6 @@ def join_4(u):
 
     lhs = integer(u['a'], u['n']) ** u['x'] * u['a_0']
     rhs = (u['A'] ** u['e']) % u['n']
-    print(u['A'])
     print(lhs == rhs)
 
 
@@ -144,7 +146,6 @@ def sign(u, m):
         serialize(d_4) +
         m.encode()
     ).hexdigest(), 16))
-    print(c)
 
     print("(c) s_1, s_2, s_3, s_4")
     s_1 = integer(r_1) - c * (integer(u['e']) - 2 ** gamma_1)
@@ -201,7 +202,6 @@ def open(gm, m, s):
         print("NOT VALIDATED")
 
     A = (s['T_1'] / s['T_2'] ** gm['x']) % gm['n']
-    print(A)
 
 
 
@@ -221,25 +221,38 @@ def test_join():
 def test_sign():
     Y, S = setup()
 
-    u = dict(Y)
-    gm = dict(Y)
-    gm.update(S)
+    u = jdecode(jencode(Y))
+    gm = jdecode(jencode(Y))
+    gm.update(jdecode(jencode(S)))
 
-    gm.update(join_0(u))
-    u.update(join_1(gm))
-    gm.update(join_2(u))
-    u.update(join_3(gm))
+    gm.update(jdecode(jencode(join_0(u))))
+    u.update(jdecode(jencode(join_1(gm))))
+    gm.update(jdecode(jencode(join_2(u))))
+    u.update(jdecode(jencode(join_3(gm))))
     join_4(u)
 
-    s = sign(u, "Awsome message")
+    s = jdecode(jencode(sign(u, "Awsome message")))
     verify(u, "Awsome message", s)
 
     open(gm, "Awsome message", s)
 
 
-def main():
-    # test_join()
+def tests():
+    test_join()
     test_sign()
 
+async def handler(websocket, path):
+    data = await websocket.recv()
+
+    frame = jdecode(data)
+    print("< {}".format(frame))
+
+def main():
+    start_server = websockets.serve(handler, 'localhost', 8765)
+
+    asyncio.get_event_loop().run_until_complete(start_server)
+    asyncio.get_event_loop().run_forever()
+
 if __name__ == "__main__":
+    # tests()
     main()
