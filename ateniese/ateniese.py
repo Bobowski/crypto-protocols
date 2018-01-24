@@ -62,17 +62,17 @@ def join_0(u):
 
     u["C_1"] = (u['g'] ** u['x'] * u['h'] ** u['r']) % u['n']
 
-    return {"C_1": u["C_1"]}
+    return {"C_1": u["C_1"], "status": "OK"}
 
 def join_1(gm):
     print("2. GM checks C1 and selects alpha and beta")
     if not is_cyclic(gm["C_1"], gm['n']):
-        print("ERROR!")
-        return
+        raise ValueError("FUCKUP")
+        return {"status": "JOIN ERROR"}
 
     gm['alpha'], gm['beta'] = random(2 ** lambda_2), random(2 ** lambda_2)
 
-    return {'alpha': gm['alpha'], 'beta': gm['beta']}
+    return {'alpha': gm['alpha'], 'beta': gm['beta'], 'status': 'OK'}
 
 def join_2(u):
     print("3. User computes x_i and sends C_2 to GM")
@@ -80,13 +80,13 @@ def join_2(u):
     u['x'] = integer(2) ** lambda_1 + integer(xa)
     u['C_2'] = (u['a'] ** u['x']) % u['n']
 
-    return {'C_2': u['C_2']}
+    return {'C_2': u['C_2'], 'status': "OK"}
 
 def join_3(gm):
     print("4. GM checks C2 and computes random e_i prime")
     if not is_cyclic(gm['C_2'], gm['n']):
-        print("ERROR")
-        return
+        raise ValueError("FUCKUP")
+        return {"status": "JOIN ERROR"}
 
     while True:
         e = integer(rnd.randrange(T[0], T[1]))
@@ -100,7 +100,9 @@ def join_3(gm):
     gm['e'] = e
     gm['A'] = A
 
-    return {'A': A, 'e': e}
+    print("True")
+
+    return {'A': A, 'e': e, 'status': 'OK'}
 
 def join_4(u):
     print("5. User verifies credentials")
@@ -108,6 +110,7 @@ def join_4(u):
     lhs = integer(u['a'], u['n']) ** u['x'] * u['a_0']
     rhs = (u['A'] ** u['e']) % u['n']
     print(lhs == rhs)
+    return lhs == rhs
 
 
 def sign(u, m):
@@ -203,6 +206,10 @@ def open(gm, m, s):
 
     A = (s['T_1'] / s['T_2'] ** gm['x']) % gm['n']
 
+    for k, v in Users.items():
+        if v['A'] == A:
+            print("It's", k)
+            return {'name': k}
 
 
 def test_join():
@@ -241,11 +248,69 @@ def tests():
     test_join()
     test_sign()
 
+
+# GLOBAL GM VARIABLES
+if __name__ == "__main__":
+    Y, S = setup()
+    Users = {}
+
+
 async def handler(websocket, path):
     data = await websocket.recv()
-
     frame = jdecode(data)
-    print("< {}".format(frame))
+
+    print("< {}".format(frame['cmd']))
+
+    if frame['cmd'] == 'get_pk':
+        print("> Public Key")
+
+        out = dict(Y)
+        await websocket.send(jencode(out))
+        return
+
+    if frame['cmd'] == 'open':
+        print("> OPEN by", frame['name'])
+
+        gm = dict(Y)
+        gm.update(S)
+        gm.update(frame)
+
+        out = open(gm, gm['msg'], gm['sign'])
+        await websocket.send(jencode(out))
+
+
+    if frame['cmd'] == 'join':
+        # prepare values
+        try:
+            print("> JOIN by", frame['name'])
+
+            gm = dict(Y)
+            gm.update(S)
+            gm.update(frame)
+
+            # Answer to commit
+            out = join_1(gm)
+            await websocket.send(jencode(out))
+
+            # Await response
+            data = await websocket.recv()
+            frame = jdecode(data)
+            gm.update(frame)
+
+            # Generate key
+            out = join_3(gm)
+            await websocket.send(jencode(out))
+
+            # Add user to list
+            Users[gm['name']] = gm
+            print(gm['name'], "successfully added")
+            print("{} users on the list".format(len(Users)))
+        except Exception:
+            out = {"status": "ERROR"}
+            print("JOIN ERROR!!!")
+            await websocket.send(jencode(out))
+        return
+
 
 def main():
     start_server = websockets.serve(handler, 'localhost', 8765)
