@@ -30,7 +30,7 @@ async def join():
         u = dict(Y)
 
         # Commit
-        out = {'cmd': 'join', 'name': "Piotr"}
+        out = {'cmd': 'join', 'name': "Adam"}
         out.update(join_0(u))
         await websocket.send(jencode(out))
 

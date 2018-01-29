@@ -256,10 +256,13 @@ if __name__ == "__main__":
 
 
 async def handler(websocket, path):
+
+
     data = await websocket.recv()
     frame = jdecode(data)
 
     print("< {}".format(frame['cmd']))
+    import pdb; pdb.set_trace()
 
     if frame['cmd'] == 'get_pk':
         print("> Public Key")
