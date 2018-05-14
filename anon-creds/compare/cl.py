@@ -2,7 +2,7 @@ from charm.toolbox.pairinggroup import PairingGroup, ZR, G1, G2, GT, pair
 from utils import product
 import time
 
-G = PairingGroup('SS512')
+G = PairingGroup('SS1024')
 
 ## ------------- ISSUE -------------
 
@@ -75,7 +75,7 @@ def step_7(v):
 
 def test():
     # Just testing
-    l = 1999
+    l = 10
 
     g = G.random(G1)
     x, y = G.random(ZR), G.random(ZR)
@@ -86,7 +86,7 @@ def test():
     Z = [g ** i for i in z]
 
 
-    iters = 2
+    iters = 30
     dta = []
     for _ in range(iters):
         u = {'g': g, 'X': X, 'Y': Y, 'Z': Z, 'm': m}
